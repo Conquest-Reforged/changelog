@@ -24,7 +24,12 @@ function render(commits) {
             latest = author;
         }
 
-        lines.forEach(line => log.appendChild(renderLine(line)));
+        lines.forEach(line => {
+            if (line.startsWith("Merge remote-tracking branch")) {
+                return;
+            }
+            log.appendChild(renderLine(line))
+        });
     });
 
     document.body.appendChild(renderTitle(oldest, latest));
