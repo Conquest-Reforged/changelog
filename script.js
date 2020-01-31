@@ -1,8 +1,8 @@
+const OWNER = "TerraForged";
 const NAME = "TerraForged";
-const REPO = "TerraForged/TerraForged";
 
 window.addEventListener("load", function() {
-    fetch(`https://api.github.com/repos/${REPO}/commits`)
+    fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
         .then(r => r.json())
         .then(render)
         .catch(console.warn);
@@ -12,26 +12,19 @@ function render(commits) {
     let log = document.createElement("ul");
     let latest = null;
     let oldest = null;
-
     commits.forEach(entry => {
         const commit = entry["commit"];
-        const author = commit["author"];
-        const message = commit["message"];
-        const lines = message.split("\n") || [];
+        const lines = commit["message"].split("\n") || [];
         if (latest) {
-            oldest = author;
+            oldest = commit["author"];
         } else {
-            latest = author;
+            latest = commit["author"];
         }
-
-        lines.forEach(line => {
-            if (line.startsWith("Merge remote-tracking branch")) {
-                return;
-            }
-            log.appendChild(renderLine(line))
-        });
+        lines.map(sanitize)
+            .filter(s => s !== "")
+            .map(renderLine)
+            .forEach(item => log.appendChild(item));
     });
-
     document.body.appendChild(renderTitle(oldest, latest));
     document.body.appendChild(log);
 }
@@ -52,6 +45,9 @@ function renderLine(text) {
 
 function sanitize(text) {
     text = text.trim();
+    if (text.startsWith("Merge remote")) {
+        return "";
+    }
     if (text.startsWith("-")) {
         text = text.substring(1);
         text = text.trim();

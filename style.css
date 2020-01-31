@@ -1,0 +1,16 @@
+body {
+    color: #444;
+    background-color: #fefefe;
+    padding: .25em 1em;
+    font-family: "Nunito", sans-serif;
+}
+
+ul {
+    padding: .5em 0;
+    list-style-position: inside;
+}
+
+li:nth-child(odd) {
+    padding: 0;
+    background-color: #fbfbfb;
+}
