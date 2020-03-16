@@ -2,38 +2,48 @@ const OWNER = "TerraForged";
 const NAME = "TerraForged";
 
 window.addEventListener("load", function() {
-    fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
+    let commits = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
+        .then(r => r.json());
+
+    let tags = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/tags?per_page=100`)
         .then(r => r.json())
-        .then(render)
+        .then(tags => {
+            let map = {};
+            tags.forEach(tag => map[tag["commit"]["sha"]] = tag["name"]);
+            return map;
+        });
+
+    Promise.all([commits, tags])
+        .then(results => render(results[0], results[1]))
         .catch(console.warn);
 });
 
-function render(commits) {
+function render(commits, tags) {
     let log = document.createElement("ul");
-    let latest = null;
-    let oldest = null;
-    commits.forEach(entry => {
-        const commit = entry["commit"];
-        const lines = commit["message"].split("\n") || [];
-        if (latest) {
-            oldest = commit["author"];
-        } else {
-            latest = commit["author"];
+    let lastTag = "unknown";
+    for (let i = 0; i < commits.length; i++) {
+        const entry = commits[i];
+        const tag = tags[entry["sha"]];
+        if (tag) {
+            lastTag = tag;
+            break;
         }
+
+        const commit = commits[i]["commit"];
+        const lines = commit["message"].split("\n") || [];
+
         lines.map(sanitize)
             .filter(s => s !== "")
             .map(renderLine)
             .forEach(item => log.appendChild(item));
-    });
-    document.body.appendChild(renderTitle(oldest, latest));
+    }
+    document.body.appendChild(renderTitle(lastTag));
     document.body.appendChild(log);
 }
 
-function renderTitle(start, end) {
+function renderTitle(tag) {
     let title = document.createElement("h3");
-    let oldest = formatDate(new Date(start["date"]));
-    let latest = formatDate(new Date(end["date"]));
-    title.innerText = `${NAME} Changelog - ${oldest} to ${latest}`;
+    title.innerText = `Changelog: ${tag} to Present`;
     return title;
 }
 
@@ -53,16 +63,4 @@ function sanitize(text) {
         text = text.trim();
     }
     return text.charAt(0).toUpperCase() + text.substring(1);
-}
-
-function formatDate(date) {
-    let day = date.getDate();
-    let month = date.getMonth() + 1;
-    if (month < 10) {
-        month = "0" + month;
-    }
-    if (day < 10) {
-        day = "0" + day;
-    }
-    return `${day}/${month}/${date.getFullYear()}`;
 }
