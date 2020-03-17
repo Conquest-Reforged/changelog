@@ -54,13 +54,23 @@ function renderLine(text) {
 }
 
 function sanitize(text) {
-    text = text.trim();
-    if (text.startsWith("Merge remote")) {
+    if (filter(text.toLowerCase())) {
         return "";
     }
+    text = text.trim();
     if (text.startsWith("-")) {
         text = text.substring(1);
         text = text.trim();
     }
     return text.charAt(0).toUpperCase() + text.substring(1);
+}
+
+function filter(text) {
+    if (text.startsWith("merge remote")) {
+        return true;
+    }
+    if (text.indexOf("update") > -1 && text.indexOf("ref") > 0) {
+        return true;
+    }
+    return false;
 }
