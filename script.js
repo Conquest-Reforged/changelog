@@ -1,5 +1,6 @@
 const OWNER = "TerraForged";
 const NAME = "TerraForged";
+const TARGET = getHash();
 
 window.addEventListener("load", function() {
     let commits = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
@@ -24,7 +25,7 @@ function render(commits, tags) {
     for (let i = 0; i < commits.length; i++) {
         const entry = commits[i];
         const tag = tags[entry["sha"]];
-        if (tag) {
+        if (tag && (!TARGET || tag === TARGET)) {
             lastTag = tag;
             break;
         }
@@ -73,4 +74,12 @@ function filter(text) {
         return true;
     }
     return false;
+}
+
+function getHash() {
+    let hash = window.location.hash;
+    if (hash) {
+        return hash.substring(1);
+    }
+    return "";
 }
