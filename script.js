@@ -1,6 +1,5 @@
 const OWNER = "TerraForged";
 const NAME = "TerraForged";
-const TARGET = getHash();
 
 window.addEventListener("load", function() {
     let commits = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
@@ -20,14 +19,23 @@ window.addEventListener("load", function() {
 });
 
 function render(commits, tags) {
+    let range = getRange();
+    let to = range["to"];
+    let from = range["from"];
+    let recording = to === "present";
     let log = document.createElement("ul");
-    let lastTag = "unknown";
     for (let i = 0; i < commits.length; i++) {
         const entry = commits[i];
         const tag = tags[entry["sha"]];
-        if (tag && (!TARGET || tag === TARGET)) {
-            lastTag = tag;
+        if (recording && tag && (tag === from || from === "last")) {
+            from = tag;
             break;
+        }
+        if (!recording && tag && tag === to) {
+            recording = true;
+        }
+        if (!recording) {
+            continue;
         }
 
         const commit = commits[i]["commit"];
@@ -38,13 +46,13 @@ function render(commits, tags) {
             .map(renderLine)
             .forEach(item => log.appendChild(item));
     }
-    document.body.appendChild(renderTitle(lastTag));
+    document.body.appendChild(renderTitle(from, to));
     document.body.appendChild(log);
 }
 
-function renderTitle(tag) {
+function renderTitle(from, to) {
     let title = document.createElement("h3");
-    title.innerText = `Changelog: ${tag} to Present`;
+    title.innerText = `Changelog: ${from} to ${to}`;
     return title;
 }
 
@@ -76,10 +84,25 @@ function filter(text) {
     return false;
 }
 
-function getHash() {
-    let hash = window.location.hash;
-    if (hash) {
-        return hash.substring(1);
+function getRange() {
+    let query = parseQuery(window.location.search);
+    let to = "present";
+    let from = "last";
+    if (query.hasOwnProperty("from")) {
+        from = query["from"];
     }
-    return "";
+    if (query.hasOwnProperty("to")) {
+        to = query["to"];
+    }
+    return {"from": from, "to": to}
+}
+
+function parseQuery(queryString) {
+    let query = {};
+    let pairs = (queryString[0] === "?" ? queryString.substr(1) : queryString).split("&");
+    for (let i = 0; i < pairs.length; i++) {
+        let kv = pairs[i].split("=");
+        query[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+    }
+    return query;
 }
