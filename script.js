@@ -1,5 +1,6 @@
 const OWNER = "Conquest-Reforged";
 const NAME = "ReforgedMod";
+const PAGE_LIMIT = 5;
 
 window.addEventListener("load", function() {
     let commits = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
@@ -14,21 +15,36 @@ window.addEventListener("load", function() {
         });
 
     Promise.all([commits, tags])
-        .then(results => render(results[0], results[1]))
+        .then(results => render(1, results[0], results[1]))
         .catch(console.warn);
 });
 
-function render(commits, tags) {
+function render(page, commits, tags) {
     let range = getRange();
     let to = range["to"];
     let from = range["from"];
-    let recording = to === "present";
+    document.body.appendChild(renderTitle(from, to));
+
     let log = document.createElement("ul");
+
+    renderRange(log, page, commits, tags, from, to);
+
+    document.body.appendChild(log);
+}
+
+function renderRange(log, page, commits, tags, from, to) {
+    if (commits.length === 0) {
+        return;
+    }
+
+    let end = false;
+    let recording = to === "present";
     for (let i = 0; i < commits.length; i++) {
         const entry = commits[i];
         const tag = tags[entry["sha"]];
         if (recording && tag && (tag === from || from === "last")) {
             from = tag;
+            end = true;
             break;
         }
         if (!recording && tag && tag === to) {
@@ -46,8 +62,17 @@ function render(commits, tags) {
             .map(renderLine)
             .forEach(item => log.appendChild(item));
     }
-    document.body.appendChild(renderTitle(from, to));
-    document.body.appendChild(log);
+
+    if (!end && commits.length === 100 && page < PAGE_LIMIT) {
+        nextPage(log, page + 1, tags, from, to);
+    }
+}
+
+function nextPage(log, page, tags, from, to) {
+    fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100&page=${page}`)
+        .then(r => r.json())
+        .then(commits => renderRange(log, page, commits, tags, from, to))
+        .catch(console.log);
 }
 
 function renderTitle(from, to) {
