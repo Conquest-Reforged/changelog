@@ -1,5 +1,5 @@
-const OWNER = "TerraForged";
-const NAME = "TerraForged";
+const OWNER = "Conquest-Reforged";
+const NAME = "ReforgedMod";
 
 window.addEventListener("load", function() {
     let commits = fetch(`https://api.github.com/repos/${OWNER}/${NAME}/commits?per_page=100`)
